@@ -64,7 +64,7 @@ function autoFitColumns(worksheet, data) {
 }
 
 // Function to write data to Excel file with formatting
-async function createExcelFile(milestonesWithIssues) {
+async function createExcelFile(milestonesWithIssues, filePath) {
   // Create a new workbook and worksheet
   const workbook = XLSX.utils.book_new();
   const worksheetData = [['Milestone', 'Issue', 'Labels', 'PR Title', 'State']]; // Headers
@@ -76,8 +76,8 @@ async function createExcelFile(milestonesWithIssues) {
         milestone.milestoneTitle,
         issue.title,
         issue.labels.join(', '),
-        issue.pull_request || 'No PR', 
-        issue.state 
+        issue.pull_request || 'No PR',  // Pull request title
+        issue.state  // Add the state of the issue
       ]);
     }
   }
@@ -131,39 +131,43 @@ async function createExcelFile(milestonesWithIssues) {
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Milestones & Issues');
 
   // Write to Excel file
-  const filePath = `./${owner}_${repo}_milestones_issues_pr_state.xlsx`;
   XLSX.writeFile(workbook, filePath);
   return filePath;
 }
 
 // Endpoint to export milestones, issues, labels, PR titles, and issue states to an Excel file
 app.get('/export-excel', async (req, res) => {
+  try {
+    // Retrieve query parameters
     const owner = req.query.owner;         // Get the repository owner from query parameters
     const repo = req.query.repo;           // Get the repository name from query parameters
     const token = req.query.token;         // Get the GitHub token from query parameters
     const milestoneName = req.query.milestoneName; // Get the milestone name from query parameters
-    
+
+    // Log parameters for debugging
+    console.log('Received query parameters:', { owner, repo, token, milestoneName });
+
+    // Validate required parameters
     if (!owner || !repo || !token) {
       return res.status(400).json({ error: 'Missing required query parameters: owner, repo, token' });
     }
-  
-  try {
+
     // Fetch all milestones
     const milestones = await fetchMilestones(owner, repo, token);
-      
-      // Filter milestones by name (if provided)
-      const filteredMilestones = milestoneName
+
+    // Filter milestones by name (if provided)
+    const filteredMilestones = milestoneName
       ? milestones.filter(milestone => milestone.title.toLowerCase().includes(milestoneName.toLowerCase()))
       : milestones; // If no name is provided, include all milestones
-     
-     if (filteredMilestones.length === 0) {
-       return res.status(404).json({ error: `No milestones found with name: ${milestoneName}` });
-     }
-    
+
+    if (filteredMilestones.length === 0) {
+      return res.status(404).json({ error: `No milestones found with name: ${milestoneName}` });
+    }
+
     // Array to store the data we will write to Excel
     const milestonesWithIssues = [];
 
-    // Loop through each milestone to fetch its issues and labels
+    // Loop through each filtered milestone to fetch its issues and labels
     for (const milestone of filteredMilestones) {
       const issues = await fetchIssuesForMilestone(owner, repo, token, milestone.number);
 
@@ -194,7 +198,8 @@ app.get('/export-excel', async (req, res) => {
     }
 
     // Create the Excel file and get the file path
-    const filePath = await createExcelFile(milestonesWithIssues);
+    const filePath = './milestones_issues_pr_state.xlsx';
+    await createExcelFile(milestonesWithIssues, filePath);
 
     // Send the file to the client for download
     res.download(filePath, (err) => {
