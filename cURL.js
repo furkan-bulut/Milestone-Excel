@@ -6,7 +6,7 @@ const app = express();
 const port = 3000;
 
 // Fetch milestones from GitHub
-async function fetchMilestones(owner, repo, token) {
+async function fetchMilestones(owner, repo, token, milestoneName) {
   const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/milestones`, {
     headers: {
       Authorization: `token ${token}`
@@ -16,7 +16,7 @@ async function fetchMilestones(owner, repo, token) {
 }
 
 // Fetch issues for a specific milestone
-async function fetchIssuesForMilestone(owner, repo, token, milestoneNumber) {
+async function fetchIssuesForMilestone(owner, repo, token, milestoneName, milestoneNumber) {
   const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues?milestone=${milestoneNumber}&state=all`, {
     headers: {
       Authorization: `token ${token}`
@@ -26,7 +26,7 @@ async function fetchIssuesForMilestone(owner, repo, token, milestoneNumber) {
 }
 
 // Fetch pull request details for a given issue (if the issue has an associated PR)
-async function fetchPullRequestForIssue(owner, repo, token, issueUrl) {
+async function fetchPullRequestForIssue(owner, repo, token, milestoneName, issueUrl) {
   if (!issueUrl) {
     console.error("No issue URL provided");
     return { title: 'No PR' }; // Return a default value if the URL is undefined
@@ -153,11 +153,11 @@ app.get('/export-excel', async (req, res) => {
     }
 
     // Fetch all milestones
-    const milestones = await fetchMilestones(owner, repo, token);
+    const milestones = await fetchMilestones(owner, repo, token, milestoneName);
 
     // Filter milestones by name (if provided)
     const filteredMilestones = milestoneName
-      ? milestones.filter(milestone => milestone.title.toLowerCase().includes(milestoneName.toLowerCase()))
+      ? milestones.filter(milestone => milestone.title.toLowerCase() === milestoneName.toLowerCase())
       : milestones; // If no name is provided, include all milestones
 
     if (filteredMilestones.length === 0) {
@@ -169,7 +169,7 @@ app.get('/export-excel', async (req, res) => {
 
     // Loop through each filtered milestone to fetch its issues and labels
     for (const milestone of filteredMilestones) {
-      const issues = await fetchIssuesForMilestone(owner, repo, token, milestone.number);
+      const issues = await fetchIssuesForMilestone(owner, repo, token, milestoneName, milestone.number);
 
       const issuesWithLabelsAndPR = await Promise.all(issues.map(async issue => {
         let prTitle = 'No PR';
@@ -177,7 +177,7 @@ app.get('/export-excel', async (req, res) => {
         // Check if the issue has a pull request URL
         if (issue.pull_request && issue.pull_request.url) {
           console.log(`Fetching PR for issue: ${issue.title}, PR URL: ${issue.pull_request.url}`);
-          const pullRequest = await fetchPullRequestForIssue(owner, repo, token, issue.pull_request.url);
+          const pullRequest = await fetchPullRequestForIssue(owner, repo, token, milestoneName, issue.pull_request.url);
           prTitle = pullRequest.title || 'No PR';
         } else {
           console.log(`No pull request for issue: ${issue.title}`);
@@ -198,7 +198,7 @@ app.get('/export-excel', async (req, res) => {
     }
 
     // Create the Excel file and get the file path
-    const filePath = './milestones_issues_pr_state.xlsx';
+    const filePath = `./${owner}_${repo}_${milestoneName}_milestones_issues_pr_state.xlsx`;
     await createExcelFile(milestonesWithIssues, filePath);
 
     // Send the file to the client for download
