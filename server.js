@@ -5,10 +5,10 @@ const fs = require('fs');
 const app = express();
 const port = 3000;
 
-const milestoneName = 'MILEDENEME'; // Milestone name (if left empty will return all milestones)
-const owner = 'furkan-bulut'; // Repo owner
-const repo = 'Github-Dashboard';   // Repo name
-const token = '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';  // GitHub personal access token
+const milestoneName = ''; // Milestone name (if left empty will return all milestones)
+const owner = ''; // Repo owner
+const repo = '';   // Repo name
+const token = '';  // GitHub personal access token
 
 // Fetch milestones from GitHub
 async function fetchMilestones() {

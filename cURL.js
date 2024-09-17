@@ -40,7 +40,7 @@ async function fetchPullRequestForIssue(owner, repo, token, milestoneName, issue
     });
 
     if (!response.ok) {
-      console.error(`Failed to fetch pull request: ${response.statusText}`);
+      console.error(`Failed to fetch pull request : ${response.statusText}`);
       return { title: 'No PR' }; // Return a default value on error
     }
 
