@@ -1,5 +1,6 @@
 const express = require('express');
 const XLSX = require('xlsx');
+const fetch = require('node-fetch');
 const fs = require('fs');
 
 const app = express();
@@ -12,7 +13,16 @@ async function fetchMilestones(owner, repo, token, milestoneName) {
       Authorization: `token ${token}`
     }
   });
-  return response.json();
+
+  const data = await response.json();
+
+  // Check if data is an array
+  if (!Array.isArray(data)) {
+    console.error("Milestones data is not an array:", data);
+    throw new Error("Failed to retrieve milestones or data is not an array.");
+  }
+
+  return data;
 }
 
 // Fetch issues for a specific milestone
@@ -135,6 +145,8 @@ async function createExcelFile(milestonesWithIssues, filePath) {
   return filePath;
 }
 
+
+
 // Endpoint to export milestones, issues, labels, PR titles, and issue states to an Excel file
 app.get('/export-excel', async (req, res) => {
   try {
@@ -149,7 +161,7 @@ app.get('/export-excel', async (req, res) => {
 
     // Validate required parameters
     if (!owner || !repo || !token) {
-      return res.status(400).json({ error: 'Missing required query parameters: owner, repo, token' });
+      return res.status(400).json({ error: 'Missing required query parameters: owner, repo, token, milestone name' });
     }
 
     // Fetch all milestones

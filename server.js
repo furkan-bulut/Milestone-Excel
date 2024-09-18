@@ -1,5 +1,6 @@
 const express = require('express');
 const XLSX = require('xlsx');
+const fetch = require('node-fetch');
 const fs = require('fs');
 
 const app = express();
