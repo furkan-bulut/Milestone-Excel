@@ -1,6 +1,6 @@
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 const express = require('express');
 const XLSX = require('xlsx');
-const fetch = require('node-fetch');
 const fs = require('fs');
 
 const app = express();
