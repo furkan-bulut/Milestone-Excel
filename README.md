@@ -1,6 +1,6 @@
 //DESCRIPTION
 
-This app exports a repos milestone informations such as issues, labels, pull request title and state to an excel file.
+This app exports a repo's milestone informations such as issues, labels, pull request title and state to an excel file.
 
 While server.js accepts parameters directly from code, cURL.js accepts parameters from query and can be used either entering modified cURL commands directly to the browser or with postman.
 
@@ -31,6 +31,8 @@ step 4 - click "import" and select Milestone-Export.postman_collection.json from
 step 5 - Modify the given example parameters and click "Send"
 
 step 6 - if the response turns 200 OK you can access cURL code snippet by clicking to the "code" button on the right sidebar.
+
+step 7 - Copy the cURL command and paste it to the browser's URL bar
 
 
 //HOW TO INSTALL cURL.JS USAGE FROM BROWSER
