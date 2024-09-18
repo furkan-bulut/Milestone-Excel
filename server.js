@@ -150,7 +150,7 @@ app.get('/export-excel', async (req, res) => {
       
       // Filter milestones by name (if provided)
       const filteredMilestones = milestoneName
-      ? milestones.filter(milestone => milestone.title.toLowerCase().includes(milestoneName.toLowerCase()))
+      ? milestones.filter(milestone => milestone.title.toLowerCase() === milestoneName.toLowerCase())
       : milestones; // If no name is provided, include all milestones
      
      if (filteredMilestones.length === 0) {
