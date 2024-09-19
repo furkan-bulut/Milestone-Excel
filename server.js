@@ -1,28 +1,45 @@
-const fetch = require('node-fetch');
-const express = require('express');
-const XLSX = require('xlsx');
-const fs = require('fs');
+import fetch from 'node-fetch';
+import express from 'express';
+import path from 'path';
+import XLSX  from 'xlsx';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
+import cors from 'cors';
 
 const app = express();
 const port = 3000;
 
-const milestoneName = ''; // Milestone name (if left empty will return all milestones)
-const owner = ''; // Repo owner
-const repo = '';   // Repo name
-const token = '';  // GitHub personal access token
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(cors());
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // Fetch milestones from GitHub
-async function fetchMilestones() {
+async function fetchMilestones(owner, repo, token, milestoneName) {
   const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/milestones`, {
     headers: {
       Authorization: `token ${token}`
     }
   });
-  return response.json();
+
+  const data = await response.json();
+
+  // Check if data is an array
+  if (!Array.isArray(data)) {
+    console.error("Milestones data is not an array:", data);
+    throw new Error("Failed to retrieve milestones or data is not an array.");
+  }
+
+  return data;
 }
 
 // Fetch issues for a specific milestone
-async function fetchIssuesForMilestone(milestoneNumber) {
+async function fetchIssuesForMilestone(owner, repo, token, milestoneName, milestoneNumber) {
   const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues?milestone=${milestoneNumber}&state=all`, {
     headers: {
       Authorization: `token ${token}`
@@ -32,7 +49,7 @@ async function fetchIssuesForMilestone(milestoneNumber) {
 }
 
 // Fetch pull request details for a given issue (if the issue has an associated PR)
-async function fetchPullRequestForIssue(issueUrl) {
+async function fetchPullRequestForIssue(owner, repo, token, milestoneName, issueUrl) {
   if (!issueUrl) {
     console.error("No issue URL provided");
     return { title: 'No PR' }; // Return a default value if the URL is undefined
@@ -46,7 +63,7 @@ async function fetchPullRequestForIssue(issueUrl) {
     });
 
     if (!response.ok) {
-      console.error(`Failed to fetch pull request: ${response.statusText}`);
+      console.error(`Failed to fetch pull request : ${response.statusText}`);
       return { title: 'No PR' }; // Return a default value on error
     }
 
@@ -70,7 +87,7 @@ function autoFitColumns(worksheet, data) {
 }
 
 // Function to write data to Excel file with formatting
-async function createExcelFile(milestonesWithIssues) {
+async function createExcelFile(milestonesWithIssues, filePath) {
   // Create a new workbook and worksheet
   const workbook = XLSX.utils.book_new();
   const worksheetData = [['Milestone', 'Issue', 'Labels', 'PR Title', 'State']]; // Headers
@@ -82,8 +99,8 @@ async function createExcelFile(milestonesWithIssues) {
         milestone.milestoneTitle,
         issue.title,
         issue.labels.join(', '),
-        issue.pull_request || 'No PR', 
-        issue.state 
+        issue.pull_request || 'No PR',  // Pull request title
+        issue.state  // Add the state of the issue
       ]);
     }
   }
@@ -137,32 +154,47 @@ async function createExcelFile(milestonesWithIssues) {
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Milestones & Issues');
 
   // Write to Excel file
-  const filePath = `./${owner}_${repo}_milestones_issues_pr_state.xlsx`;
   XLSX.writeFile(workbook, filePath);
   return filePath;
 }
 
+
+
 // Endpoint to export milestones, issues, labels, PR titles, and issue states to an Excel file
 app.get('/export-excel', async (req, res) => {
   try {
+    // Retrieve query parameters
+    const owner = req.query.owner;         // Get the repository owner from query parameters
+    const repo = req.query.repo;           // Get the repository name from query parameters
+    const token = req.query.token;         // Get the GitHub token from query parameters
+    const milestoneName = req.query.milestoneName; // Get the milestone name from query parameters
+
+    // Log parameters for debugging
+    console.log('Received query parameters:', { owner, repo, token, milestoneName });
+
+    // Validate required parameters
+    if (!owner || !repo || !token) {
+      return res.status(400).json({ error: 'Missing required query parameters: owner, repo, token, milestone name' });
+    }
+
     // Fetch all milestones
-    const milestones = await fetchMilestones();
-      
-      // Filter milestones by name (if provided)
-      const filteredMilestones = milestoneName
+    const milestones = await fetchMilestones(owner, repo, token, milestoneName);
+
+    // Filter milestones by name (if provided)
+    const filteredMilestones = milestoneName
       ? milestones.filter(milestone => milestone.title.toLowerCase() === milestoneName.toLowerCase())
       : milestones; // If no name is provided, include all milestones
-     
-     if (filteredMilestones.length === 0) {
-       return res.status(404).json({ error: `No milestones found with name: ${milestoneName}` });
-     }
-    
+
+    if (filteredMilestones.length === 0) {
+      return res.status(404).json({ error: `No milestones found with name: ${milestoneName}` });
+    }
+
     // Array to store the data we will write to Excel
     const milestonesWithIssues = [];
 
-    // Loop through each milestone to fetch its issues and labels
+    // Loop through each filtered milestone to fetch its issues and labels
     for (const milestone of filteredMilestones) {
-      const issues = await fetchIssuesForMilestone(milestone.number);
+      const issues = await fetchIssuesForMilestone(owner, repo, token, milestoneName, milestone.number);
 
       const issuesWithLabelsAndPR = await Promise.all(issues.map(async issue => {
         let prTitle = 'No PR';
@@ -170,7 +202,7 @@ app.get('/export-excel', async (req, res) => {
         // Check if the issue has a pull request URL
         if (issue.pull_request && issue.pull_request.url) {
           console.log(`Fetching PR for issue: ${issue.title}, PR URL: ${issue.pull_request.url}`);
-          const pullRequest = await fetchPullRequestForIssue(issue.pull_request.url);
+          const pullRequest = await fetchPullRequestForIssue(owner, repo, token, milestoneName, issue.pull_request.url);
           prTitle = pullRequest.title || 'No PR';
         } else {
           console.log(`No pull request for issue: ${issue.title}`);
@@ -191,7 +223,8 @@ app.get('/export-excel', async (req, res) => {
     }
 
     // Create the Excel file and get the file path
-    const filePath = await createExcelFile(milestonesWithIssues);
+    const filePath = `./${owner}_${repo}_${milestoneName}_milestones_issues_pr_state.xlsx`;
+    await createExcelFile(milestonesWithIssues, filePath);
 
     // Send the file to the client for download
     res.download(filePath, (err) => {
@@ -208,7 +241,76 @@ app.get('/export-excel', async (req, res) => {
   }
 });
 
+app.get('/fetch-data', async (req, res) => {
+  try {
+    // Retrieve query parameters
+    const owner = req.query.owner;         // Get the repository owner from query parameters
+    const repo = req.query.repo;           // Get the repository name from query parameters
+    const token = req.query.token;         // Get the GitHub token from query parameters
+    const milestoneName = req.query.milestoneName; // Get the milestone name from query parameters
+
+    // Log parameters for debugging
+    console.log('Received query parameters:', { owner, repo, token, milestoneName });
+
+    // Validate required parameters
+    if (!owner || !repo || !token) {
+      return res.status(400).json({ error: 'Missing required query parameters: owner, repo, token, milestone name' });
+    }
+
+    // Fetch all milestones
+    const milestones = await fetchMilestones(owner, repo, token, milestoneName);
+
+    // Filter milestones by name (if provided)
+    const filteredMilestones = milestoneName
+      ? milestones.filter(milestone => milestone.title.toLowerCase() === milestoneName.toLowerCase())
+      : milestones; // If no name is provided, include all milestones
+
+    if (filteredMilestones.length === 0) {
+      return res.status(404).json({ error: `No milestones found with name: ${milestoneName}` });
+    }
+
+    // Array to store the data we will write to Excel
+    const milestonesWithIssues = [];
+
+    // Loop through each filtered milestone to fetch its issues and labels
+    for (const milestone of filteredMilestones) {
+      const issues = await fetchIssuesForMilestone(owner, repo, token, milestoneName, milestone.number);
+
+      const issuesWithLabelsAndPR = await Promise.all(issues.map(async issue => {
+        let prTitle = 'No PR';
+
+        // Check if the issue has a pull request URL
+        if (issue.pull_request && issue.pull_request.url) {
+          console.log(`Fetching PR for issue: ${issue.title}, PR URL: ${issue.pull_request.url}`);
+          const pullRequest = await fetchPullRequestForIssue(owner, repo, token, milestoneName, issue.pull_request.url);
+          prTitle = pullRequest.title || 'No PR';
+        } else {
+          console.log(`No pull request for issue: ${issue.title}`);
+        }
+
+        return {
+          title: issue.title,
+          labels: issue.labels.map(label => label.name),
+          pull_request: prTitle,
+          state: issue.state // Capture the issue state
+        };
+      }));
+
+      milestonesWithIssues.push({
+        milestoneTitle: milestone.title,
+        issues: issuesWithLabelsAndPR
+      });
+    }
+
+    res.json(milestonesWithIssues);
+
+  } catch (error) {
+    console.error('Error fetching data or exporting to Excel:', error);
+    res.status(500).json({ error: 'Failed to export to Excel' });
+  }
+});
+
 // Start the server
-app.listen(port, () => {
+app.listen(port, '0.0.0.0', () => {
   console.log(`Server is running on http://localhost:${port}`);
 });

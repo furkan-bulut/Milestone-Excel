@@ -1,10 +1,23 @@
-const fetch = require('node-fetch');
-const express = require('express');
-const XLSX = require('xlsx');
-const fs = require('fs');
+import fetch from 'node-fetch';
+import express from 'express';
+import path from 'path';
+import XLSX  from 'xlsx';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
+import cors from 'cors';
 
 const app = express();
 const port = 3000;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(cors());
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // Fetch milestones from GitHub
 async function fetchMilestones(owner, repo, token, milestoneName) {
@@ -228,7 +241,76 @@ app.get('/export-excel', async (req, res) => {
   }
 });
 
+app.get('/fetch-data', async (req, res) => {
+  try {
+    // Retrieve query parameters
+    const owner = req.query.owner;         // Get the repository owner from query parameters
+    const repo = req.query.repo;           // Get the repository name from query parameters
+    const token = req.query.token;         // Get the GitHub token from query parameters
+    const milestoneName = req.query.milestoneName; // Get the milestone name from query parameters
+
+    // Log parameters for debugging
+    console.log('Received query parameters:', { owner, repo, token, milestoneName });
+
+    // Validate required parameters
+    if (!owner || !repo || !token) {
+      return res.status(400).json({ error: 'Missing required query parameters: owner, repo, token, milestone name' });
+    }
+
+    // Fetch all milestones
+    const milestones = await fetchMilestones(owner, repo, token, milestoneName);
+
+    // Filter milestones by name (if provided)
+    const filteredMilestones = milestoneName
+      ? milestones.filter(milestone => milestone.title.toLowerCase() === milestoneName.toLowerCase())
+      : milestones; // If no name is provided, include all milestones
+
+    if (filteredMilestones.length === 0) {
+      return res.status(404).json({ error: `No milestones found with name: ${milestoneName}` });
+    }
+
+    // Array to store the data we will write to Excel
+    const milestonesWithIssues = [];
+
+    // Loop through each filtered milestone to fetch its issues and labels
+    for (const milestone of filteredMilestones) {
+      const issues = await fetchIssuesForMilestone(owner, repo, token, milestoneName, milestone.number);
+
+      const issuesWithLabelsAndPR = await Promise.all(issues.map(async issue => {
+        let prTitle = 'No PR';
+
+        // Check if the issue has a pull request URL
+        if (issue.pull_request && issue.pull_request.url) {
+          console.log(`Fetching PR for issue: ${issue.title}, PR URL: ${issue.pull_request.url}`);
+          const pullRequest = await fetchPullRequestForIssue(owner, repo, token, milestoneName, issue.pull_request.url);
+          prTitle = pullRequest.title || 'No PR';
+        } else {
+          console.log(`No pull request for issue: ${issue.title}`);
+        }
+
+        return {
+          title: issue.title,
+          labels: issue.labels.map(label => label.name),
+          pull_request: prTitle,
+          state: issue.state // Capture the issue state
+        };
+      }));
+
+      milestonesWithIssues.push({
+        milestoneTitle: milestone.title,
+        issues: issuesWithLabelsAndPR
+      });
+    }
+
+    res.json(milestonesWithIssues);
+
+  } catch (error) {
+    console.error('Error fetching data or exporting to Excel:', error);
+    res.status(500).json({ error: 'Failed to export to Excel' });
+  }
+});
+
 // Start the server
-app.listen(port, () => {
+app.listen(port, '0.0.0.0', () => {
   console.log(`Server is running on http://localhost:${port}`);
 });

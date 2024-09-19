@@ -1,8 +1,20 @@
 {
+  "name": "milestone-excel",
+  "version": "1.0.0",
+  "description": "A Node.js app to fetch GitHub milestones and export them to Excel",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
   "dependencies": {
-    "express": "^4.21.0",
-    "fs": "^0.0.1-security",
-    "node-fetch": "^2.6.6",
+    "axios": "^1.5.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "node-fetch": "^3.3.1",
+    "path": "^0.12.7",
     "xlsx": "^0.18.5"
-  }
+  },
+  "type": "module",
+  "author": "Furkan Bulut",
+  "license": "ISC"
 }

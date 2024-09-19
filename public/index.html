@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+   <div><p>Milestones and Issues Exporter</p></div>
+
+    <!-- Input form to enter repo details -->
+    <form id="repo-form">
+        <label for="owner">Repository Owner:</label>
+        <input type="text" id="owner" name="owner" required><br>
+        <label for="repo">Repository Name:</label>
+        <input type="text" id="repo" name="repo" required><br>
+        <label for="milestoneName">Milestone Name (optional):</label>
+        <input type="text" id="milestoneName" name="milestoneName"><br>
+        <label for="token">GitHub Token:</label>
+        <input type="password" id="token" name="token" required><br>
+        <button class="show-button" id ="show-button" type="submit">Show Milestones</button>
+        <button class="export-button" id="export-button" type="submit">Export to Excel</button>
+    </form>
+
+ 
+
+    <!-- Table to display the milestone data -->
+    <table id="milestones-table" border="1">
+        <thead>
+            <tr>
+                <th>Milestone</th>
+                <th>Issue</th>
+                <th>Labels</th>
+                <th>PR Title</th>
+                <th>State</th>
+            </tr>
+        </thead>
+        <tbody id="table-body">
+            
+        </tbody>
+    </table>
+   
+    <script src="app.js"></script>
+</body>
+</html>
