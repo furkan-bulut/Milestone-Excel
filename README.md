@@ -1,56 +1,42 @@
-//DESCRIPTION
+// DESCRIPTION
 
-This app exports a repo's milestone informations such as issues, labels, pull request title and state to an excel file.
-
-While server.js accepts parameters directly from code, cURL.js accepts parameters from query and can be used either entering modified cURL commands directly to the browser or with postman.
-
-There is an example postman collection with an example owner and repo for you to import and test parameters. Just replace the github personal access token and you're good to go.
+This app shows a repo's milestone informations such as issues, labels, pull request title and state and exports these informations to an excel file.
 
 
-//HOW TO INSTALL SERVER.JS USAGE
+// PREREQUISITES
 
-step 1 - Go to your terminal and insert "npm install"
-
-step 2 - From your terminal insert "node server.js" to start server.js
-
-step 3 - Open server.js with an IDE and change the owner, repo, token and milestoneName for your needs.(default is empty so it won't work if left untouched.)
-
-step 3 - From your browser go to "localhost:3000/export-excel" and that's it
+- Node js
 
 
-//HOW TO INSTALL cURL.JS USAGE FROM POSTMAN
+// HOW TO INSTALL
 
-step 1 - Go to your terminal and insert "npm install"
+1- Run "npm install" in your terminal to install dependencies.
 
-step 2 - From your terminal insert "node cURL.js" to start cURL.js
+2- From your terminal insert "node server.js" in the base directory.
 
-step 3 - Open Postman app and after selecting your workspace head to collections
-
-step 4 - click "import" and select Milestone-Export.postman_collection.json from base directory
-
-step 5 - Modify the given example parameters and click "Send"
-
-step 6 - if the response turns 200 OK you can access cURL code snippet by clicking to the "code" button on the right sidebar.
-
-step 7 - Copy the cURL command and paste it to the browser's URL bar
+3- Open your browser and head to "localhost:3000" and you're good to go.
 
 
-//HOW TO INSTALL cURL.JS USAGE FROM BROWSER
+// RUNNING WITH DOCKER 
 
-step 1 - Go to your terminal and insert "npm install"
+1- From base directory build the app with "docker build -t your-desired-container-tag ."
 
-step 2 - From your terminal insert "node cURL.js" to start cURL.js
+2- Run the container in detached mode and fixed port "3000:3000" with "docker run -d -p 3000:3000 your-container-tag"
 
-step 3 - Open your browser and paste the cURL command you like from below after changing the parameters for your needs to URL bar
+3- Open your browser and head to "localhost:3000" and you're good to go.
 
 
+// HOW TO USE
 
-//cURL COMMANDS
+Once you run the project you'll see a form that requests "Repository Owner", "Repository Name", "Milestone Name" and "GitHub Token" informations. After filling the form with the needed information simply click the button with the name of the action you want to take.
 
-This request fetches issues for all milestones in public repos:
-curl: "http://localhost:3000/export-excel?owner=user-name&repo=repo-name&token=github-token"
 
-To filter issues by a specific milestone name, include the milestoneName query parameter:
-curl: "http://localhost:3000/export-excel?owner=user-name&repo=repo-name&token=github-token&milestoneName=milestone-name"
+// ENDPOINTS
 
-To use simply change the "user-name", "repo-name", "github-token" and "milestone-name" parts for your needs.
+If you don't want to work with the ui you can directly export as excel or fetch the data as an array by entering the endpoint urls below to your browsers URL bar. Just make sure to modify the "owner", "repo", "token", "milestoneName" query parameters for your needs.
+
+Alternatively you can use Postman to fetch the data as an array too but it won't download the excel file if you try to export.
+
+endpoint url to export directly : "http://localhost:3000/export-excel?owner=github-username&repo=repo-name&token=github-personal-access-token&milestoneName=milestone-name"
+
+endpoint url to fetch data as an array : "http://localhost:3000/fetch-data?owner=github-username&repo=repo-name&token=github-personal-access-token&milestoneName=milestone-name"
