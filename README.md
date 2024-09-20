@@ -12,7 +12,7 @@ This app shows a repo's milestone informations such as issues, labels, pull requ
 
 1- Run "npm install" in your terminal to install dependencies.
 
-2- From your terminal insert "node server.js" in the base directory.
+2- From your terminal insert "node server.js" while inside of the base directory.
 
 3- Open your browser and head to "localhost:3000" and you're good to go.
 
