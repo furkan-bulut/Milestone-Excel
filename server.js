@@ -168,9 +168,11 @@ app.get('/export-excel', async (req, res) => {
     const repo = req.query.repo;           // Get the repository name from query parameters
     const token = req.query.token;         // Get the GitHub token from query parameters
     const milestoneName = req.query.milestoneName; // Get the milestone name from query parameters
+    const excludeLabels = req.query.excludeLabels ? req.query.excludeLabels.split(',').map(label => label.trim()) : []; //Get the excluded labels from query
+
 
     // Log parameters for debugging
-    console.log('Received query parameters:', { owner, repo, token, milestoneName });
+    console.log('Received query parameters:', { owner, repo, token, milestoneName, excludeLabels });
 
     // Validate required parameters
     if (!owner || !repo || !token) {
@@ -202,17 +204,18 @@ app.get('/export-excel', async (req, res) => {
         // Check if the issue has a pull request URL
         if (issue.pull_request && issue.pull_request.url) {
           console.log(`Fetching PR for issue: ${issue.title}, PR URL: ${issue.pull_request.url}`);
+          console.log(excludeLabels);
           const pullRequest = await fetchPullRequestForIssue(owner, repo, token, milestoneName, issue.pull_request.url);
           prTitle = pullRequest.title || 'No PR';
         } else {
           console.log(`No pull request for issue: ${issue.title}`);
         }
-
+        
         return {
           title: issue.title,
-          labels: issue.labels.map(label => label.name),
+          labels: issue.labels.map(label => label.name).filter(label => !excludeLabels.includes(label)) || 'No Label',
           pull_request: prTitle,
-          state: issue.state // Capture the issue state
+          state: issue.state 
         };
       }));
 

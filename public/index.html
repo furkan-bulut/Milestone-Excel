@@ -6,18 +6,29 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-   <div><p>Milestones and Issues Exporter</p></div>
+   <div class="title-div"><p>Milestone Exporter</p></div>
 
     <!-- Input form to enter repo details -->
     <form id="repo-form">
-        <label for="owner">Repository Owner:</label>
-        <input type="text" id="owner" name="owner" required><br>
-        <label for="repo">Repository Name:</label>
-        <input type="text" id="repo" name="repo" required><br>
-        <label for="milestoneName">Milestone Name (optional):</label>
-        <input type="text" id="milestoneName" name="milestoneName"><br>
-        <label for="token">GitHub Token:</label>
-        <input type="password" id="token" name="token" required><br>
+
+        <label class="label" for="token">GitHub Access Token:</label>
+        <input class="input" type="password" id="token" name="token" value="" required><br>
+
+        <label class="label" for="owner">Repository Owner:</label>
+        <input class="input" type="text" id="owner" name="owner" value="ebebek" required><br>
+
+        <label class="label" for="repo">Repository:</label>
+        <div class="combobox">
+            <input class="input" autocomplete="off" type="text" id="repo" value="spartacus.ebebek.com"/>
+            <div id="dropdown" class="dropdown"></div>
+        </div>
+
+        <label class="label" for="milestoneName">Milestone Name (optional):</label>
+        <input  class="input" type="text" id="milestoneName" name="milestoneName" value="uat-82.1"><br>
+
+        <label class="label" for="excludeLabels">Exclude Labels:</label>
+        <input class="input" type="text" id="excludeLabels" name="excludeLabels" value="automatic"><br>
+
         <button class="show-button" id ="show-button" type="submit">Show Milestones</button>
         <button class="export-button" id="export-button" type="submit">Export to Excel</button>
     </form>

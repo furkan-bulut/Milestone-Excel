@@ -5,10 +5,11 @@ document.getElementById('export-button').addEventListener('click', async functio
     const repo = document.getElementById('repo').value;
     const milestoneName = document.getElementById('milestoneName').value;
     const token = document.getElementById('token').value;
+    const excludeLabels = document.getElementById('excludeLabels').value.split(',').map(label => label.trim());
 
     try {
         // Fetch the data from the backend
-        const response = await fetch(`/export-excel?owner=${owner}&repo=${repo}&token=${token}&milestoneName=${milestoneName}`);
+        const response = await fetch(`/export-excel?owner=${owner}&repo=${repo}&token=${token}&milestoneName=${milestoneName}&excludeLabels=${excludeLabels.join(',')}`);
         if (!response.ok) {
             throw new Error('Failed to fetch milestone data');
         }
@@ -23,8 +24,7 @@ document.getElementById('export-button').addEventListener('click', async functio
 
         }
 
-        // Replace with your actual endpoint URL
-        fetchAndParseExcel(`/export-excel?owner=${owner}&repo=${repo}&token=${token}&milestoneName=${milestoneName}`);
+        fetchAndParseExcel(`/export-excel?owner=${owner}&repo=${repo}&token=${token}&milestoneName=${milestoneName}&excludeLabels=${excludeLabels.join(',')}`);
 
         // Assuming the response is an Excel file, prompt for download
         const blob = await response.blob();
@@ -48,6 +48,7 @@ document.getElementById('show-button').addEventListener('click', async function(
     const repo = document.getElementById('repo').value;
     const milestoneName = document.getElementById('milestoneName').value;
     const token = document.getElementById('token').value;
+    const excludeLabels = document.getElementById('excludeLabels').value.split(',').map(label => label.trim());
 
     try {
         const response = await fetch(`/fetch-data?owner=${owner}&repo=${repo}&token=${token}&milestoneName=${milestoneName}`);
@@ -64,19 +65,89 @@ document.getElementById('show-button').addEventListener('click', async function(
         // Assuming data is an array of milestone objects with issues
         data.forEach(milestone => {
             milestone.issues.forEach(issue => {
+                const filteredLabels = issue.labels.filter(label => !excludeLabels.includes(label));
+                console.log('Issue labels:', issue.labels);
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${milestone.milestoneTitle}</td>
                     <td>${issue.title}</td>
-                    <td>${issue.labels.join(', ')}</td>
+                    <td>${filteredLabels.length > 0 ? filteredLabels.join(', ') : 'No Labels'}</td>
                     <td>${issue.pull_request}</td>
                     <td>${issue.state}</td>
                 `;
                 tbody.appendChild(row);
+                
             });
         });
 
     } catch (error) {
         console.error('Error:', error);
     }
+});
+
+// combobox
+
+async function fetchRepositories(owner, token) {
+    try {
+        const response = await fetch(`https://api.github.com/users/${owner}/repos`, {
+            headers: {
+                Authorization: `token ${token}`
+            }
+        });
+        const repos = await response.json();
+        populateRepositoryOptions(repos);
+    } catch (error) {
+        console.error('Error fetching repositories:', error);
+    }
+}
+
+function populateRepositoryOptions(repos) {
+    const dropdown = document.getElementById('dropdown');
+    dropdown.innerHTML = ''; // Clear existing options
+
+    repos.forEach(repo => {
+        const option = document.createElement('div');
+        option.textContent = repo.name;
+        option.addEventListener('click', () => {
+            document.getElementById('repo').value = repo.name; // Set input value
+            dropdown.style.display = 'none'; // Hide dropdown
+        });
+        dropdown.appendChild(option);
+    });
+
+    // Show dropdown if there are options
+    if (repos.length > 0) {
+        dropdown.style.display = 'block';
+    } else {
+        dropdown.style.display = 'none';
+    }
+}
+
+// Handle input events
+document.getElementById('repo').addEventListener('input', function() {
+    const value = this.value.toLowerCase();
+    const options = document.querySelectorAll('#dropdown div');
+
+    options.forEach(option => {
+        if (option.textContent.toLowerCase().includes(value)) {
+            option.style.display = 'block'; // Show matching options
+        } else {
+            option.style.display = 'none'; // Hide non-matching options
+        }
+    });
+});
+
+// Hide dropdown when clicking outside
+document.addEventListener('click', (event) => {
+    const dropdown = document.getElementById('dropdown');
+    if (!event.target.matches('#repo')) {
+        dropdown.style.display = 'none'; // Hide if click is outside
+    }
+});
+
+// Fetch repositories when owner is changed
+document.getElementById('repo').addEventListener('focus', async function() {
+    const owner = document.getElementById('owner').value;
+    const token = document.getElementById('token').value; // Ensure token is available
+    await fetchRepositories(owner, token);
 });
