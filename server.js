@@ -23,7 +23,8 @@ app.get('/', (req, res) => {
 async function fetchMilestones(owner, repo, token, milestoneName) {
   const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/milestones`, {
     headers: {
-      Authorization: `token ${token}`
+      Authorization: `token ${token}`,
+      Accept: 'application/vnd.github.v3+json'
     }
   });
 
@@ -42,7 +43,8 @@ async function fetchMilestones(owner, repo, token, milestoneName) {
 async function fetchIssuesForMilestone(owner, repo, token, milestoneName, milestoneNumber) {
   const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues?milestone=${milestoneNumber}&state=all`, {
     headers: {
-      Authorization: `token ${token}`
+      Authorization: `token ${token}`,
+      Accept: 'application/vnd.github.v3+json'
     }
   });
   return response.json();
@@ -58,7 +60,8 @@ async function fetchPullRequestForIssue(owner, repo, token, milestoneName, issue
   try {
     const response = await fetch(issueUrl, {
       headers: {
-        Authorization: `token ${token}`
+        Authorization: `token ${token}`,
+        Accept: 'application/vnd.github.v3+json'
       }
     });
 

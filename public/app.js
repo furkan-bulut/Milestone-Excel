@@ -87,23 +87,10 @@ document.getElementById('show-button').addEventListener('click', async function(
 
 // combobox
 
-async function fetchRepositories(owner, token) {
-    try {
-        const response = await fetch(`https://api.github.com/users/${owner}/repos`, {
-            headers: {
-                Authorization: `token ${token}`
-            }
-        });
-        const repos = await response.json();
-        populateRepositoryOptions(repos);
-    } catch (error) {
-        console.error('Error fetching repositories:', error);
-    }
-}
-
 function populateRepositoryOptions(repos) {
     const dropdown = document.getElementById('dropdown');
     dropdown.innerHTML = ''; // Clear existing options
+
 
     repos.forEach(repo => {
         const option = document.createElement('div');
@@ -123,18 +110,12 @@ function populateRepositoryOptions(repos) {
     }
 }
 
-// Handle input events
-document.getElementById('repo').addEventListener('input', function() {
-    const value = this.value.toLowerCase();
-    const options = document.querySelectorAll('#dropdown div');
-
-    options.forEach(option => {
-        if (option.textContent.toLowerCase().includes(value)) {
-            option.style.display = 'block'; // Show matching options
-        } else {
-            option.style.display = 'none'; // Hide non-matching options
-        }
-    });
+document.getElementById('repo').addEventListener('focus', async function() {
+    const repos = [
+        { name: 'spartacus.ebebek.com' },
+        { name: 'spartacus.web.ebebek.com' }
+      ];
+    await populateRepositoryOptions(repos);
 });
 
 // Hide dropdown when clicking outside
@@ -143,11 +124,4 @@ document.addEventListener('click', (event) => {
     if (!event.target.matches('#repo')) {
         dropdown.style.display = 'none'; // Hide if click is outside
     }
-});
-
-// Fetch repositories when owner is changed
-document.getElementById('repo').addEventListener('focus', async function() {
-    const owner = document.getElementById('owner').value;
-    const token = document.getElementById('token').value; // Ensure token is available
-    await fetchRepositories(owner, token);
 });
